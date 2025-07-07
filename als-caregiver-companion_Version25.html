@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ALS Caregiver Companion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary-color: #3479f6;
+            --primary-color-light: #eaf2ff;
+            --primary-color-dark: #2853a4;
+            --bg-color: #f7fafc;
+            --card-bg: #fff;
+            --text-color: #23272d;
+            --shadow: 0 4px 16px rgba(0,0,0,0.07);
+            --button-bg: #e5ecf9;
+            --button-hover: #c3dafc;
+            --input-bg: #f8fafd;
+            --input-border: #c3dafc;
+            --anim-color: #3479f6;
+            --reminder-color: #f6e9b9;
+            --archive-bg: #f1f5fa;
+            --archive-text: #888;
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; display: flex; min-height: 100vh; transition: background 0.3s, color 0.3s;}
+        h1 { text-align: center; color: var(--primary-color); text-shadow: 1px 1px 2px #fff4; margin-bottom: 12px; }
+        .sidebar { width: 220px; background: var(--card-bg); padding: 15px 10px; box-shadow: var(--shadow); position: sticky; top: 0; height: 100vh; overflow-y: auto; border-radius: 0 10px 10px 0; margin-right: 20px; }
+        .sidebar h2 { text-align: center; margin-bottom: 15px; color: var(--primary-color);}
+        .sidebar .nav-list { padding: 0; margin: 0 0 10px 0; }
+        .sidebar .nav-list li { list-style: none; margin-bottom: 8px; }
+        .sidebar .nav-link {
+            width: 100%; display: block; padding: 12px; background: var(--button-bg); border: none; cursor: pointer;
+            border-radius: 8px; transition: all .2s; box-shadow: var(--shadow); font-size: 16px; text-align: left;
+            color: var(--text-color); text-decoration: none; outline: none;
+        }
+        .sidebar .nav-link.active { background: var(--primary-color); color: #fff; }
+        .sidebar .nav-link:hover { background: var(--button-hover); color: var(--primary-color);}
+        .main-content { flex: 1; padding: 30px 0 30px 0;}
+        .tab-content { display: none; background: var(--card-bg); border-radius: 16px; padding: 30px 6vw; margin: 0 2vw; min-width: 290px; max-width: 730px; box-shadow: var(--shadow); transition: all .2s; }
+        .tab-content.active { display: block; opacity: 1; transform: translateY(0); }
+        input, button, select, textarea { margin: 8px 0; padding: 10px; width: 100%; box-sizing: border-box; font-size: 16px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);}
+        textarea { resize: vertical; }
+        select { appearance: none; background: var(--input-bg); color: var(--text-color);}
+        option { background: #eaf2ff; color: var(--primary-color);}
+        input[type="datetime-local"], input[type="date"], input[type="time"] { cursor: pointer; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 5px var(--primary-color-light); }
+        button:not(.sidebar button) { background: var(--button-bg); color: var(--primary-color-dark); border: none; cursor: pointer; transition: 0.2s;}
+        button:not(.sidebar button):hover { background: var(--button-hover); color: var(--primary-color); }
+        ul { list-style: none; padding: 0; background: #f8fafd; border: 1px solid #eaf2ff; border-radius: 8px; max-height: 350px; overflow-y: auto; box-shadow: inset var(--shadow); }
+        li { padding: 12px; border-bottom: 1px solid #eaf2ff; transition: all .2s; display: flex; align-items: center;}
+        li:last-child { border-bottom: none; }
+        .checklist li { justify-content: flex-end; text-align: right; }
+        .checklist input[type="checkbox"] {
+            margin-right: 0;
+            margin-left: 12px;
+            order: 2;
+            transform: scale(1.2);
+        }
+        .checklist label, .routine-btn {
+            order: 1;
+            flex: 1;
+            text-align: right;
+            cursor: pointer;
+        }
+        .routine-btn {
+            background: var(--button-bg);
+            color: var(--primary-color-dark);
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            padding: 6px 12px;
+            margin: 0 0 0 8px;
+            font-size: 14px;
+            outline: none;
+            transition: background .2s, color .2s;
+        }
+        .routine-btn:hover { background: var(--primary-color); color: #fff;}
+        .tip { font-style: italic; color: #2b4279; margin-bottom: 10px; }
+        .rewards {
+            padding: 25px 20px 15px 20px;
+            background: var(--primary-color-light);
+            border-radius: 14px;
+            color: var(--primary-color-dark);
+            font-size: 22px;
+            text-align: center;
+            margin: 0 0 30px 0;
+            box-shadow: 0 2px 10px #2222;
+            font-family: 'Segoe UI Semibold', Arial, sans-serif;
+        }
+        .inspiration {
+            font-size: 19px;
+            color: #2b4279;
+            margin: 18px 0 8px 0;
+            text-align: center;
+            font-style: italic;
+            line-height: 1.6;
+        }
+        .rewards-quote {
+            font-size: 18px;
+            color: var(--primary-color);
+            font-style: italic;
+            margin-top: 14px;
+            margin-bottom: 0;
+            text-align:center;
+        }
+        .reminder-section {
+            background: var(--reminder-color);
+            color: #191a1b;
+            padding: 16px 18px;
+            border-radius: 10px;
+            margin: 20px 0 24px 0;
+            box-shadow: 0 2px 10px #2222;
+        }
+        .reminder-section label,
+        .reminder-section input,
+        .reminder-section button { color: #23272d!important; background: #fff!important; }
+        .reminder-section button { color: #191a1b!important; background: #ffe066!important; }
+        .reminder-list li { color: #23272d; background: #fff; text-align: left;}
+        .banner-reminders {
+            background: var(--reminder-color);
+            color: #191a1b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px #2226;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            align-items: center;
+        }
+        .banner-reminders span {
+            font-size: 15px;
+            margin-right: 10px;
+            display: inline-block;
+            padding: 1px 7px 1px 0;
+        }
+        .banner-reminders .rem-done {
+            opacity: 0.45;
+            text-decoration: line-through;
+        }
+        .completed-anim {
+            animation: pop-complete 0.5s;
+            background: var(--anim-color)!important;
+            color: #fff!important;
+        }
+        @keyframes pop-complete {
+            0% { transform: scale(1); background: var(--button-bg);}
+            50% { transform: scale(1.12); background: var(--anim-color);}
+            100% { transform: scale(1); background: var(--button-bg);}
+        }
+        .two-col { display: flex; gap:16px; }
+        .two-col > * { flex: 1; }
+        .archive-btn {background: var(--archive-bg); color: var(--archive-text); border: 1px solid #dde5ed; border-radius: 6px; font-size: 14px; margin-left: 10px; padding: 4px 14px;}
+        .archive-btn:hover {background: var(--primary-color); color: #fff;}
+        #affirmation-bubble {
+            position: fixed;
+            left: 50%;
+            top: 90px;
+            transform: translate(-50%, 0);
+            z-index: 10000;
+            background: #fff;
+            color: var(--primary-color-dark);
+            border-radius: 30px;
+            padding: 25px 36px 24px 45px;
+            box-shadow: 0 10px 40px #3479f655, 0 1px 10px #0002;
+            font-size: 21px;
+            font-weight: 600;
+            max-width: 430px;
+            min-width: 220px;
+            text-align: center;
+            border: 3px solid var(--primary-color);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.22s cubic-bezier(.7,2,.5,1);
+        }
+        #affirmation-bubble.show {
+            opacity: 1;
+            animation: bubble-pop 1.2s cubic-bezier(.42,1.75,.43,.97);
+            pointer-events: auto;
+        }
+        #affirmation-bubble:after {
+            content: "";
+            position: absolute;
+            left: 42px;
+            bottom: -28px;
+            width: 34px;
+            height: 34px;
+            background: #fff;
+            border-radius: 50%;
+            border: 3px solid var(--primary-color);
+            border-top: none;
+            border-right: none;
+            box-shadow: 3px 8px 10px #3479f62a;
+            z-index: 2;
+        }
+        #affirmation-bubble:before {
+            content: "";
+            position: absolute;
+            left: 60px;
+            bottom: -44px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            border-top: none;
+            border-right: none;
+            box-shadow: 3px 8px 18px #3479f612;
+            z-index: 1;
+        }
+        @keyframes bubble-pop {
+            0%   { transform: translate(-50%, -20px) scale(0.3); opacity: 0;}
+            60%  { transform: translate(-50%, 0) scale(1.07); opacity: 1;}
+            80%  { transform: translate(-50%, 0) scale(.95);}
+            100% { transform: translate(-50%, 0) scale(1);}
+        }
+    </style>
+</head>
+<body>
+<div id="affirmation-bubble"></div>
+<div class="sidebar">
+    <h2>Scheduling</h2>
+    <ul class="nav-list">
+        <li><a href="#" class="nav-link active" data-tab="appointments">Appointments</a></li>
+        <li><a href="#" class="nav-link" data-tab="medicines">Medicines</a></li>
+        <li><a href="#" class="nav-link" data-tab="adls">ADLs Checklist</a></li>
+        <li><a href="#" class="nav-link" data-tab="trach-gtube">Tracheostomy &amp; G-Tube Care</a></li>
+        <li><a href="#" class="nav-link" data-tab="devices">Devices</a></li>
+        <li><a href="#" class="nav-link" data-tab="reminders">Reminders</a></li>
+        <li><a href="#" class="nav-link" data-tab="rewards">Rewards</a></li>
+        <li><a href="#" class="nav-link" data-tab="archived">Archived</a></li>
+    </ul>
+</div>
+<div class="main-content">
+    <div id="global-reminders" class="banner-reminders" style="display:none"></div>
+    <h1>ALS Caregiver Companion</h1>
+    <div id="appointments" class="tab-content active">
+        <label>Add Appointment</label>
+        <div class="two-col">
+            <select id="appt-dropdown">
+                <option value="">Select Specialist/Type</option>
+                <option>Primary Care Physician</option>
+                <option>Dentist</option>
+                <option>Optometrist/Ophthalmologist</option>
+                <option>Neurologist</option>
+                <option>Pulmonologist</option>
+                <option>Respiratory Therapist</option>
+                <option>Physical Therapist</option>
+                <option>Occupational Therapist</option>
+                <option>Speech-Language Pathologist</option>
+                <option>Dietitian/Nutritionist</option>
+                <option>Gastroenterologist (GI)</option>
+                <option>Cardiologist</option>
+                <option>Urologist</option>
+                <option>Social Worker</option>
+                <option>Palliative Care</option>
+                <option>Hospice/Palliative Team</option>
+                <option>ALS Clinic/MDA Clinic</option>
+                <option>Genetic Counselor</option>
+                <option>Orthotist</option>
+                <option>Psychologist/Psychiatrist</option>
+                <option>ENT (Ear/Nose/Throat)</option>
+                <option>Other Specialist</option>
+            </select>
+            <input id="appt-input" placeholder="Details or extra notes">
+        </div>
+        <div class="two-col">
+            <input id="appt-date" type="date">
+            <input id="appt-time" type="time">
+        </div>
+        <button id="appt-add-btn">Add</button>
+        <div style="margin:12px 0 3px 0;">
+            <button class="routine-btn" id="appt-annual">Annual Physical</button>
+            <button class="routine-btn" id="appt-dental">Dental Cleaning</button>
+            <button class="routine-btn" id="appt-als">ALS Clinic Visit</button>
+        </div>
+        <div style="margin-bottom:10px;">
+            <button class="archive-btn" id="appt-archive">Archive Completed</button>
+        </div>
+        <ul id="appointments-list" class="checklist"></ul>
+        <button id="appt-reset">Reset for New Day</button>
+    </div>
+    <div id="medicines" class="tab-content">
+        <label>Add Medicine</label>
+        <div class="two-col">
+            <select id="medicines-dropdown">
+                <option value="">Select Medication</option>
+                <option>Riluzole</option>
+                <option>Edaravone</option>
+                <option>Baclofen</option>
+                <option>Gabapentin</option>
+                <option>Breathing Treatment</option>
+                <option>Other</option>
+            </select>
+            <input id="medicines-input" placeholder="Or type custom medicine name">
+        </div>
+        <div class="two-col">
+            <input id="medicines-date" type="date">
+            <input id="medicines-time" type="time">
+        </div>
+        <button id="medicines-add-btn">Add</button>
+        <div style="margin:12px 0 3px 0;">
+            <button class="routine-btn" id="meds-morning">Morning Medications</button>
+            <button class="routine-btn" id="meds-evening">Evening Medications</button>
+            <button class="routine-btn" id="meds-breathing">Breathing Treatment</button>
+        </div>
+        <div style="margin-bottom:10px;">
+            <button class="archive-btn" id="medicines-archive">Archive Completed</button>
+        </div>
+        <ul id="medicines-list" class="checklist"></ul>
+        <button id="medicines-reset">Reset for New Day</button>
+    </div>
+    <div id="adls" class="tab-content">
+        <h3>Daily ADLs Checklist</h3>
+        <div class="two-col">
+            <select id="adls-dropdown">
+                <option value="">Select ADL</option>
+                <option>Bathing/Showering</option>
+                <option>Dressing</option>
+                <option>Grooming - Hair Care</option>
+                <option>Grooming - Shaving</option>
+                <option>Grooming - Oral Hygiene</option>
+                <option>Toileting</option>
+                <option>Continence Management</option>
+                <option>Feeding</option>
+                <option>Functional Mobility (Bed/Chair Transfers)</option>
+                <option>Wheelchair Mobility</option>
+                <option>Use of Assistive Devices</option>
+                <option>Skin Care/Pressure Relief</option>
+                <option>Respiratory Care (Cough Assist, Suction)</option>
+                <option>Communication (Devices/Boards)</option>
+                <option>Swallowing/Safety Checks</option>
+                <option>Nutrition/Hydration Check</option>
+                <option>Medication Administration</option>
+                <option>Range of Motion/Stretching</option>
+                <option>Positioning/Repositioning</option>
+                <option>Safety/Environmental Check</option>
+            </select>
+            <input id="adls-input" placeholder="Add custom ADL">
+        </div>
+        <div class="two-col">
+            <input id="adls-date" type="date">
+            <input id="adls-time" type="time">
+        </div>
+        <button id="adls-add-btn">Add</button>
+        <div style="margin:12px 0 3px 0;">
+            <button class="routine-btn" id="adls-nutrition">Check Nutrition/Hydration</button>
+            <button class="routine-btn" id="adls-positioning">Positioning</button>
+            <button class="routine-btn" id="adls-skin">Skin Care</button>
+        </div>
+        <div style="margin-bottom:10px;">
+            <button class="archive-btn" id="adls-archive">Archive Completed</button>
+        </div>
+        <ul id="adls-list" class="checklist"></ul>
+        <button id="adls-reset">Reset for New Day</button>
+    </div>
+    <div id="trach-gtube" class="tab-content">
+        <h3>Tracheostomy &amp; G-Tube Care Tasks</h3>
+        <div class="two-col">
+            <select id="tg-dropdown">
+                <option value="">Select Task</option>
+                <option>Tracheostomy: Daily Cleaning</option>
+                <option>Tracheostomy: Suctioning</option>
+                <option>Tracheostomy: Humidification</option>
+                <option>Tracheostomy: Skin Care Around Stoma</option>
+                <option>G-Tube: Clean Site</option>
+                <option>G-Tube: Feeding</option>
+                <option>G-Tube: Flush Tube</option>
+                <option>G-Tube: Check for Leakage</option>
+                <option>Other</option>
+            </select>
+            <input id="tg-input" placeholder="e.g., Suction secretions or Clean site">
+        </div>
+        <div class="two-col">
+            <input id="tg-date" type="date">
+            <input id="tg-time" type="time">
+        </div>
+        <button id="tg-add-btn">Add</button>
+        <div style="margin:12px 0 3px 0;">
+            <button class="routine-btn" id="tg-trach-clean">Tracheostomy: Daily Cleaning</button>
+            <button class="routine-btn" id="tg-trach-suction">Tracheostomy: Suctioning</button>
+            <button class="routine-btn" id="tg-trach-skin">Tracheostomy: Skin Care Around Stoma</button>
+            <button class="routine-btn" id="tg-gtube-clean">G-Tube: Clean Site</button>
+            <button class="routine-btn" id="tg-gtube-flush">G-Tube: Flush Tube</button>
+            <button class="routine-btn" id="tg-gtube-leak">G-Tube: Check for Leakage</button>
+        </div>
+        <div style="margin-bottom:10px;">
+            <button class="archive-btn" id="tg-archive">Archive Completed</button>
+        </div>
+        <ul id="trach-gtube-list" class="checklist"></ul>
+        <button id="tg-reset">Reset for New Day</button>
+    </div>
+    <div id="devices" class="tab-content">
+        <h3>Device Tasks</h3>
+        <div class="two-col">
+            <select id="devices-dropdown">
+                <option value="">Select Device Task</option>
+                <option>Charge Wheelchair</option>
+                <option>Eye Gaze Calibration</option>
+                <option>Check AAC Device</option>
+                <option>Respiratory Equipment Change</option>
+                <option>Other</option>
+            </select>
+            <input id="devices-input" placeholder="Add device/check">
+        </div>
+        <div class="two-col">
+            <input id="devices-date" type="date">
+            <input id="devices-time" type="time">
+        </div>
+        <button id="devices-add-btn">Add</button>
+        <div style="margin:12px 0 3px 0;">
+            <button class="routine-btn" id="devices-chair">Charge Wheelchair</button>
+            <button class="routine-btn" id="devices-eye">Check Eye Gaze</button>
+            <button class="routine-btn" id="devices-resp">Change Respiratory Equipment</button>
+        </div>
+        <div style="margin-bottom:10px;">
+            <button class="archive-btn" id="devices-archive">Archive Completed</button>
+        </div>
+        <ul id="devices-list" class="checklist"></ul>
+        <button id="devices-reset">Reset for New Day</button>
+        <div class="neuralink-section">
+            <h4>Neuralink Implant Management</h4>
+            <div class="two-col">
+                <input id="neuralink-desc" placeholder="e.g., Battery check, firmware update">
+            </div>
+            <div class="two-col">
+                <input id="neuralink-date" type="date">
+                <input id="neuralink-time" type="time">
+            </div>
+            <button id="neuralink-add-btn">Add Neuralink Task</button>
+            <ul id="neuralink-list" class="checklist"></ul>
+            <button id="neuralink-reset">Reset for New Day</button>
+        </div>
+    </div>
+    <div id="reminders" class="tab-content">
+        <div class="reminder-section">
+            <label for="reminder-text">Add Reminder</label>
+            <input id="reminder-text" placeholder="e.g., Pick up prescription, Call doctor">
+            <input id="reminder-date" type="date">
+            <input id="reminder-time" type="time">
+            <button id="reminder-add-btn">Add Reminder</button>
+            <ul id="reminder-list" class="reminder-list"></ul>
+        </div>
+    </div>
+    <div id="rewards" class="tab-content">
+        <div class="rewards">
+            <div id="points"></div>
+            <div id="badges"></div>
+        </div>
+        <div class="inspiration">
+            💡 <b>Your care matters, and so do you.</b> <br>
+            You are making a difference with every step. Take time for yourself, too.
+        </div>
+        <div class="rewards-quote">
+            “You can’t pour from an empty cup. Take care of yourself first.”<br>
+            <span style="font-size:15px; color:#3e6edb;">— Inspirational Saying</span>
+        </div>
+        <div class="tip">
+            Self-care idea: Enjoy your favorite song, take a breath, or step outside for some fresh air.
+        </div>
+    </div>
+    <div id="archived" class="tab-content">
+        <h3>Archived Items</h3>
+        <ul id="archived-list"></ul>
+    </div>
+</div>
+<script>
+/* ---------------- THEME: always light, so nothing to do ----------------- */
+
+const affirmations = [
+    "You are doing amazing work! 🌟",
+    "Caregivers need care, too. You're valued!",
+    "Every step you take matters.",
+    "Remember to breathe. You've got this.",
+    "Your compassion changes lives.",
+    "Be proud of yourself today.",
+    "Self-care is not selfish. 💙",
+    "One act at a time, you make a difference.",
+    "You are resilient and strong.",
+    "Today is a new day—take it one step at a time."
+];
+let completedThisSession = 0;
+function showAffirmationBubble() {
+    const bubble = document.getElementById('affirmation-bubble');
+    let idx = Math.floor(Math.random() * affirmations.length);
+    bubble.innerHTML = affirmations[idx];
+    bubble.classList.add('show');
+    setTimeout(() => {
+        bubble.classList.remove('show');
+    }, 3300);
+}
+
+function getTodayKey(section) {
+    return `${section}-checklist-${(new Date()).toISOString().slice(0, 10)}`;
+}
+function getItems(section) {
+    let items = JSON.parse(localStorage.getItem(getTodayKey(section)));
+    if (!items) {
+        if (section === 'adls') {
+            items = [
+                'Bathing/Showering','Dressing','Grooming - Hair Care','Grooming - Shaving',
+                'Grooming - Oral Hygiene','Toileting','Continence Management','Feeding',
+                'Functional Mobility (Bed/Chair Transfers)','Wheelchair Mobility','Use of Assistive Devices',
+                'Skin Care/Pressure Relief','Respiratory Care (Cough Assist, Suction)','Communication (Devices/Boards)',
+                'Swallowing/Safety Checks','Nutrition/Hydration Check','Medication Administration',
+                'Range of Motion/Stretching','Positioning/Repositioning','Safety/Environmental Check'
+            ].map(item => ({text: item, checked: false}));
+        } else {
+            items = [];
+        }
+        localStorage.setItem(getTodayKey(section), JSON.stringify(items));
+    }
+    return items;
+}
+function setItems(section, items) {
+    localStorage.setItem(getTodayKey(section), JSON.stringify(items));
+}
+function formatEntry(text, date, time) {
+    let entry = text;
+    if (date) entry += ` | ${date}`;
+    if (time) entry += ` ${time}`;
+    return entry;
+}
+function refreshChecklist(section) {
+    if (section === 'reminders' || section === 'neuralink') return;
+    const listUl = document.getElementById(section + '-list');
+    if (!listUl) return;
+    listUl.innerHTML = '';
+    const items = getItems(section);
+    items.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<label for="${section}-cb-${idx}">${item.text}</label>
+            <input type="checkbox" id="${section}-cb-${idx}" ${item.checked ? 'checked' : ''}>`;
+        const cb = li.querySelector('input[type="checkbox"]');
+        cb.addEventListener('change', function() {
+            items[idx].checked = cb.checked;
+            setItems(section, items);
+            if(cb.checked) {
+                addPoints(10);
+                animateComplete(li);
+                refreshRewards();
+            }
+        });
+        listUl.appendChild(li);
+    });
+}
+function animateComplete(li) {
+    li.classList.remove('completed-anim');
+    void li.offsetWidth;
+    li.classList.add('completed-anim');
+    completedThisSession++;
+    if (completedThisSession % 5 === 0) showAffirmationBubble();
+}
+function addCustomChecklistItem(section) {
+    let input = document.getElementById(section + '-input');
+    let dropdown = document.getElementById(section + '-dropdown');
+    let dateInput = document.getElementById(section + '-date');
+    let timeInput = document.getElementById(section + '-time');
+    let val = '';
+    let date = dateInput ? dateInput.value : '';
+    let time = timeInput ? timeInput.value : '';
+    if (dropdown && dropdown.value && dropdown.value !== '') {
+        val = dropdown.value;
+        dropdown.selectedIndex = 0;
+    }
+    if (input && input.value.trim()) {
+        val = input.value.trim();
+        input.value = '';
+    }
+    if (!val) return;
+    let entry = formatEntry(val, date, time);
+    const items = getItems(section);
+    items.push({text: entry, checked: false});
+    setItems(section, items);
+    if (dateInput) dateInput.value = '';
+    if (timeInput) timeInput.value = '';
+    refreshChecklist(section);
+}
+function resetChecklist(section) {
+    localStorage.removeItem(getTodayKey(section));
+    refreshChecklist(section);
+}
+function archiveCompleted(section) {
+    let items = getItems(section);
+    let completed = items.filter(i => i.checked);
+    if (!completed.length) return alert("No completed tasks to archive.");
+    let archived = JSON.parse(localStorage.getItem('archived')) || [];
+    let now = new Date().toLocaleString();
+    completed.forEach(item => {
+        archived.push({section, text: item.text, date: now});
+    });
+    let remaining = items.filter(i => !i.checked);
+    setItems(section, remaining);
+    localStorage.setItem('archived', JSON.stringify(archived));
+    refreshChecklist(section);
+    refreshArchived();
+}
+function getNeuralinkTasks() {
+    return JSON.parse(localStorage.getItem(getTodayKey('neuralink'))||'[]');
+}
+function setNeuralinkTasks(arr) {
+    localStorage.setItem(getTodayKey('neuralink'), JSON.stringify(arr));
+}
+function addNeuralinkTask() {
+    const desc = document.getElementById('neuralink-desc').value.trim();
+    const date = document.getElementById('neuralink-date').value;
+    const time = document.getElementById('neuralink-time').value;
+    if (!desc) return;
+    let entry = desc;
+    if (date) entry += ` | ${date}`;
+    if (time) entry += ` ${time}`;
+    let arr = getNeuralinkTasks();
+    arr.push({text: entry, checked: false});
+    setNeuralinkTasks(arr);
+    document.getElementById('neuralink-desc').value = '';
+    document.getElementById('neuralink-date').value = '';
+    document.getElementById('neuralink-time').value = '';
+    refreshNeuralink();
+}
+function refreshNeuralink() {
+    const ul = document.getElementById('neuralink-list');
+    if (!ul) return;
+    ul.innerHTML = '';
+    getNeuralinkTasks().forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<label for="neuralink-cb-${idx}">${item.text}</label>
+            <input type="checkbox" id="neuralink-cb-${idx}" ${item.checked ? 'checked' : ''}>`;
+        const cb = li.querySelector('input[type="checkbox"]');
+        cb.addEventListener('change', function() {
+            let arr = getNeuralinkTasks();
+            arr[idx].checked = cb.checked;
+            setNeuralinkTasks(arr);
+            if(cb.checked) {
+                addPoints(10);
+                animateComplete(li);
+                refreshRewards();
+            }
+        });
+        ul.appendChild(li);
+    });
+}
+function resetNeuralink() {
+    localStorage.removeItem(getTodayKey('neuralink'));
+    refreshNeuralink();
+}
+function getReminders() {
+    return JSON.parse(localStorage.getItem('reminders')||'[]');
+}
+function setReminders(arr) {
+    localStorage.setItem('reminders', JSON.stringify(arr));
+}
+function addReminder() {
+    const text = document.getElementById('reminder-text').value.trim();
+    const date = document.getElementById('reminder-date').value;
+    const time = document.getElementById('reminder-time').value;
+    if (!text && !date && !time) return;
+    let entry = text || '';
+    if (date) entry += (entry ? " | " : "") + date;
+    if (time) entry += (entry ? " " : "") + time;
+    let arr = getReminders();
+    arr.push({text: entry, done: false});
+    setReminders(arr);
+    document.getElementById('reminder-text').value = '';
+    document.getElementById('reminder-date').value = '';
+    document.getElementById('reminder-time').value = '';
+    refreshReminders();
+    showBannerReminders();
+}
+function toggleReminderDone(idx) {
+    let arr = getReminders();
+    arr[idx].done = !arr[idx].done;
+    setReminders(arr);
+    refreshReminders();
+    showBannerReminders();
+}
+function removeReminder(idx) {
+    let arr = getReminders();
+    arr.splice(idx,1);
+    setReminders(arr);
+    refreshReminders();
+    showBannerReminders();
+}
+function refreshReminders() {
+    const ul = document.getElementById('reminder-list');
+    if (!ul) return;
+    ul.innerHTML = '';
+    getReminders().forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.style.opacity = item.done ? 0.5 : 1;
+        li.innerHTML = `<span>${item.text}</span>
+            <input type="checkbox" ${item.done ? "checked" : ""} onclick="toggleReminderDone(${idx})">
+            <button onclick="removeReminder(${idx})" style="margin-left:8px;font-size:13px;">Remove</button>`;
+        ul.appendChild(li);
+    });
+}
+function getRewards() {
+    return JSON.parse(localStorage.getItem('rewards')) || { points: 0, badges: [] };
+}
+function setRewards(rewards) {
+    localStorage.setItem('rewards', JSON.stringify(rewards));
+}
+function addPoints(points) {
+    let rewards = getRewards();
+    rewards.points += points;
+    if (rewards.points >= 100 && !rewards.badges.includes('Resilient Caregiver')) rewards.badges.push('Resilient Caregiver');
+    if (rewards.points >= 500 && !rewards.badges.includes('Compassion Hero')) rewards.badges.push('Compassion Hero');
+    if (rewards.points >= 1000 && !rewards.badges.includes('Breath Guardian')) rewards.badges.push('Breath Guardian');
+    setRewards(rewards);
+}
+function refreshRewards() {
+    const rewards = getRewards();
+    document.getElementById('points').textContent = `Points: ${rewards.points}`;
+    document.getElementById('badges').textContent = `Badges: ${rewards.badges.join(', ') || 'None'}`;
+}
+function refreshArchived() {
+    const list = document.getElementById('archived-list');
+    if (!list) return;
+    list.innerHTML = '';
+    (JSON.parse(localStorage.getItem('archived')) || []).forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `From: ${entry.section} | ${entry.text} | Archived: ${entry.date}`;
+        list.appendChild(li);
+    });
+}
+function showBannerReminders() {
+    const banner = document.getElementById('global-reminders');
+    const reminders = getReminders();
+    let html = "";
+    let visible = false;
+    reminders.forEach((rem, idx) => {
+        if (!rem.done) visible = true;
+        html += `<span class="${rem.done ? "rem-done" : ""}">${rem.text}</span>`;
+    });
+    const activeTab = document.querySelector('.tab-content.active');
+    if (visible && activeTab && !['reminders','archived'].includes(activeTab.id)) {
+        banner.style.display = "";
+        banner.innerHTML = html || "No reminders!";
+    } else {
+        banner.style.display = "none";
+    }
+}
+function addRoutineTask(section, text) {
+    const items = getItems(section);
+    if (items.some(i => i.text === text)) return;
+    items.push({text: text, checked: false});
+    setItems(section, items);
+    refreshChecklist(section);
+}
+
+// Navigation
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById(link.dataset.tab).classList.add('active');
+        showBannerReminders();
+        refreshChecklist(link.dataset.tab);
+        if (link.dataset.tab === 'rewards') refreshRewards();
+        if (link.dataset.tab === 'archived') refreshArchived();
+        if (link.dataset.tab === 'reminders') refreshReminders();
+        if (link.dataset.tab === 'devices') refreshNeuralink();
+    });
+});
+
+// Appointments
+document.getElementById('appt-add-btn').addEventListener('click', () => addCustomChecklistItem('appointments'));
+document.getElementById('appt-reset').addEventListener('click', () => resetChecklist('appointments'));
+document.getElementById('appt-archive').addEventListener('click', () => archiveCompleted('appointments'));
+document.getElementById('appt-annual').addEventListener('click', ()=>addRoutineTask('appointments','Annual Physical'));
+document.getElementById('appt-dental').addEventListener('click', ()=>addRoutineTask('appointments','Dental Cleaning'));
+document.getElementById('appt-als').addEventListener('click', ()=>addRoutineTask('appointments','ALS Clinic Visit'));
+
+// Medicines
+document.getElementById('medicines-add-btn').addEventListener('click', () => addCustomChecklistItem('medicines'));
+document.getElementById('medicines-reset').addEventListener('click', () => resetChecklist('medicines'));
+document.getElementById('medicines-archive').addEventListener('click', () => archiveCompleted('medicines'));
+document.getElementById('meds-morning').addEventListener('click', ()=>addRoutineTask('medicines','Morning Medications'));
+document.getElementById('meds-evening').addEventListener('click', ()=>addRoutineTask('medicines','Evening Medications'));
+document.getElementById('meds-breathing').addEventListener('click', ()=>addRoutineTask('medicines','Breathing Treatment'));
+
+// ADLs
+document.getElementById('adls-add-btn').addEventListener('click', () => addCustomChecklistItem('adls'));
+document.getElementById('adls-reset').addEventListener('click', () => resetChecklist('adls'));
+document.getElementById('adls-archive').addEventListener('click', () => archiveCompleted('adls'));
+document.getElementById('adls-nutrition').addEventListener('click', ()=>addRoutineTask('adls','Check Nutrition/Hydration'));
+document.getElementById('adls-positioning').addEventListener('click', ()=>addRoutineTask('adls','Positioning'));
+document.getElementById('adls-skin').addEventListener('click', ()=>addRoutineTask('adls','Skin Care'));
+
+// Tracheostomy & G-Tube
+document.getElementById('tg-add-btn').addEventListener('click', () => addCustomChecklistItem('trach-gtube'));
+document.getElementById('tg-reset').addEventListener('click', () => resetChecklist('trach-gtube'));
+document.getElementById('tg-archive').addEventListener('click', () => archiveCompleted('trach-gtube'));
+document.getElementById('tg-trach-clean').addEventListener('click', ()=>addRoutineTask('trach-gtube','Tracheostomy: Daily Cleaning'));
+document.getElementById('tg-trach-suction').addEventListener('click', ()=>addRoutineTask('trach-gtube','Tracheostomy: Suctioning'));
+document.getElementById('tg-trach-skin').addEventListener('click', ()=>addRoutineTask('trach-gtube','Tracheostomy: Skin Care Around Stoma'));
+document.getElementById('tg-gtube-clean').addEventListener('click', ()=>addRoutineTask('trach-gtube','G-Tube: Clean Site'));
+document.getElementById('tg-gtube-flush').addEventListener('click', ()=>addRoutineTask('trach-gtube','G-Tube: Flush Tube'));
+document.getElementById('tg-gtube-leak').addEventListener('click', ()=>addRoutineTask('trach-gtube','G-Tube: Check for Leakage'));
+
+// Devices
+document.getElementById('devices-add-btn').addEventListener('click', () => addCustomChecklistItem('devices'));
+document.getElementById('devices-reset').addEventListener('click', () => resetChecklist('devices'));
+document.getElementById('devices-archive').addEventListener('click', () => archiveCompleted('devices'));
+document.getElementById('devices-chair').addEventListener('click', ()=>addRoutineTask('devices','Charge Wheelchair'));
+document.getElementById('devices-eye').addEventListener('click', ()=>addRoutineTask('devices','Check Eye Gaze'));
+document.getElementById('devices-resp').addEventListener('click', ()=>addRoutineTask('devices','Change Respiratory Equipment'));
+document.getElementById('neuralink-add-btn').addEventListener('click', addNeuralinkTask);
+document.getElementById('neuralink-reset').addEventListener('click', resetNeuralink);
+
+// Reminders
+document.getElementById('reminder-add-btn').addEventListener('click', addReminder);
+
+// Initial render
+['appointments','medicines','adls','trach-gtube','devices'].forEach(refreshChecklist);
+refreshRewards();
+refreshArchived();
+refreshReminders();
+refreshNeuralink();
+showBannerReminders();
+</script>
+</body>
+</html>
